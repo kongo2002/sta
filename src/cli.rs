@@ -38,6 +38,8 @@ pub struct Args {
     pub min: Option<f64>,
     #[argh(option, description = "maximum value")]
     pub max: Option<f64>,
+    #[argh(switch, short = 'q', description = "disable mean/std/var calculation")]
+    pub quiet: bool,
 }
 
 impl Args {

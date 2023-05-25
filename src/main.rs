@@ -3,6 +3,7 @@ use std::io::BufRead;
 use self::cli::{Args, LineFormat};
 
 mod cli;
+mod stats;
 
 struct StreamResult {
     pub points: Vec<DataPoint>,
@@ -41,6 +42,8 @@ fn process(args: Args) -> Result<(), String> {
     let buckets = args.buckets;
     let step = diff / (buckets as f64);
 
+    let mut mvsd = stats::MVSD::new();
+    let mut samples = 0usize;
     let mut excluded = 0usize;
     let mut boundaries = vec![];
     let mut bucket_counts = vec![0; buckets as usize];
@@ -60,6 +63,11 @@ fn process(args: Args) -> Result<(), String> {
     };
 
     for point in data.points {
+        samples += point.count;
+        if !args.quiet {
+            mvsd.add(point.value, point.count as f64);
+        }
+
         // check min/max
         if point.value < minimum || point.value > maximum {
             excluded += point.count;
@@ -74,6 +82,17 @@ fn process(args: Args) -> Result<(), String> {
     } else {
         1
     };
+
+    println!("# samples: {}; min: {}; max: {}", samples, minimum, maximum);
+
+    if !args.quiet {
+        println!(
+            "# mean: {:.2}; var: {:.2}; sd: {:.2}",
+            mvsd.mean(),
+            mvsd.var(),
+            mvsd.sd()
+        );
+    }
 
     println!("# each * represents a count of {}", bucket_scale);
 
