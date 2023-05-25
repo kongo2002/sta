@@ -63,7 +63,7 @@ jobs:
 
     - name: Install Rust toolchain
       run: |
-        rustup toolchain install stable --profile minimal --no-self-update
+        rustup toolchain install stable --profile minimal --target ${{ matrix.job.target }} --no-self-update
         rustup default stable
 
     - name: Show version information
