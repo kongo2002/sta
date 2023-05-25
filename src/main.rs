@@ -66,7 +66,7 @@ fn main() {
 const MAX_DOT_COUNT: usize = 50;
 
 fn process(args: Args) -> Result<(), String> {
-    let data = stream()?;
+    let data = stream(args.format)?;
     if data.points.is_empty() {
         return Err(String::from("empty input"));
     }
@@ -147,29 +147,65 @@ fn num_fmt(value: f64, precision: usize) -> String {
     format!("{:.precision$}", value)
 }
 
-fn stream() -> Result<StreamResult, String> {
+fn stream(format: LineFormat) -> Result<StreamResult, String> {
     let mut points = vec![];
     let mut min = f64::MAX;
     let mut max = f64::MIN;
 
     let stdin = std::io::stdin();
-    for line in stdin.lock().lines() {
-        let raw_line = line.map_err(str_error)?;
-        if raw_line.is_empty() {
+    for (idx, line) in stdin.lock().lines().enumerate() {
+        let raw_line = line.map_err(|err| line_error(idx, err))?;
+        let trimmed = raw_line.trim();
+
+        if trimmed.is_empty() {
             continue;
         }
 
-        let value = raw_line.parse::<f64>().map_err(str_error)?;
+        let point: DataPoint = match format {
+            LineFormat::Single => {
+                let value = trimmed.parse::<f64>().map_err(|err| line_error(idx, err))?;
+                Ok::<DataPoint, String>(DataPoint { value, count: 1 })
+            }
+            LineFormat::KeyValue => {
+                let (fst, snd) = tuple(trimmed).map_err(|err| line_error(idx, err))?;
+                Ok(DataPoint {
+                    value: fst,
+                    count: snd as usize,
+                })
+            }
+            LineFormat::ValueKey => {
+                let (fst, snd) = tuple(trimmed).map_err(|err| line_error(idx, err))?;
+                Ok(DataPoint {
+                    value: snd,
+                    count: fst as usize,
+                })
+            }
+        }?;
 
-        min = min.min(value);
-        max = max.max(value);
+        min = min.min(point.value);
+        max = max.max(point.value);
 
-        points.push(DataPoint { value, count: 1 })
+        points.push(point)
     }
 
     Ok(StreamResult { points, min, max })
 }
 
-fn str_error<T: ToString>(error: T) -> String {
-    error.to_string()
+fn tuple(line: &str) -> Result<(f64, f64), String> {
+    let mut splitter = line.split_whitespace();
+    let fst = splitter
+        .next()
+        .ok_or_else(|| String::from("expecting two values"))?;
+    let snd = splitter
+        .next()
+        .ok_or_else(|| String::from("expecting two values"))?;
+
+    let fst_num = fst.parse::<f64>().map_err(|err| err.to_string())?;
+    let snd_num = snd.parse::<f64>().map_err(|err| err.to_string())?;
+
+    Ok((fst_num, snd_num))
+}
+
+fn line_error<T: ToString>(idx: usize, error: T) -> String {
+    format!("line {}: {}", idx + 1, error.to_string())
 }
