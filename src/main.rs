@@ -1,11 +1,36 @@
 use std::io::BufRead;
+use std::str::FromStr;
 
 use argh::FromArgs;
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
+enum LineFormat {
+    Single,
+    KeyValue,
+    ValueKey,
+}
+
+impl FromStr for LineFormat {
+    type Err = String;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s {
+            "single" => Ok(LineFormat::Single),
+            "kv" => Ok(LineFormat::KeyValue),
+            "vk" => Ok(LineFormat::ValueKey),
+            _ => Err(format!("unknown line format: '{}'", s)),
+        }
+    }
+}
+
+struct StreamResult {
+    pub points: Vec<DataPoint>,
+    pub min: f64,
+    pub max: f64,
+}
+
 struct DataPoint {
-    // TODO: smth like decimal?
-    pub value: i32,
+    pub value: f64,
     pub count: usize,
 }
 
@@ -14,10 +39,17 @@ struct DataPoint {
 struct Args {
     #[argh(option, description = "number of buckets", short = 'b', default = "10")]
     buckets: i32,
+    #[argh(
+        option,
+        description = "line format (default: single)",
+        short = 'f',
+        default = "LineFormat::Single"
+    )]
+    format: LineFormat,
     #[argh(option, description = "minimum value")]
-    min: Option<i32>,
+    min: Option<f64>,
     #[argh(option, description = "maximum value")]
-    max: Option<i32>,
+    max: Option<f64>,
 }
 
 fn main() {
@@ -35,45 +67,28 @@ const MAX_DOT_COUNT: usize = 50;
 
 fn process(args: Args) -> Result<(), String> {
     let data = stream()?;
-    if data.is_empty() {
+    if data.points.is_empty() {
         return Err(String::from("empty input"));
     }
 
-    let minimum = args
-        .min
-        .or_else(|| {
-            data.iter()
-                .min_by_key(|pt| pt.value)
-                .as_ref()
-                .map(|pt| pt.value)
-        })
-        .unwrap();
-
-    let maximum = args
-        .max
-        .or_else(|| {
-            data.iter()
-                .max_by_key(|pt| pt.value)
-                .as_ref()
-                .map(|pt| pt.value)
-        })
-        .unwrap();
+    let minimum = args.min.unwrap_or(data.min);
+    let maximum = args.max.unwrap_or(data.max);
 
     let diff = maximum - minimum;
 
     let buckets = args.buckets;
-    let step = diff / buckets;
+    let step = diff / (buckets as f64);
 
     let mut excluded = 0usize;
     let mut boundaries = vec![];
     let mut bucket_counts = vec![0; buckets as usize];
 
     for idx in 0..buckets {
-        boundaries.push(minimum + (step * (idx + 1)));
+        boundaries.push(minimum + (step * (idx as f64 + 1.0)));
     }
 
     let last_bucket = bucket_counts.len() - 1;
-    let get_bucket = |val: i32| {
+    let get_bucket = |val: f64| {
         for (idx, boundary) in boundaries.iter().enumerate() {
             if val <= *boundary {
                 return idx;
@@ -82,7 +97,7 @@ fn process(args: Args) -> Result<(), String> {
         last_bucket
     };
 
-    for point in data {
+    for point in data.points {
         // check min/max
         if point.value < minimum || point.value > maximum {
             excluded += point.count;
@@ -115,8 +130,8 @@ fn process(args: Args) -> Result<(), String> {
         let dots = if count > 0 { count / bucket_scale } else { 0 };
 
         table.add_row(tabular::row!(
-            bucket_min,
-            bucket_max,
+            num_fmt(bucket_min, 2),
+            num_fmt(bucket_max, 2),
             count,
             "*".repeat(dots)
         ));
@@ -127,8 +142,16 @@ fn process(args: Args) -> Result<(), String> {
     Ok(())
 }
 
-fn stream() -> Result<Vec<DataPoint>, String> {
+#[inline]
+fn num_fmt(value: f64, precision: usize) -> String {
+    format!("{:.precision$}", value)
+}
+
+fn stream() -> Result<StreamResult, String> {
     let mut points = vec![];
+    let mut min = f64::MAX;
+    let mut max = f64::MIN;
+
     let stdin = std::io::stdin();
     for line in stdin.lock().lines() {
         let raw_line = line.map_err(str_error)?;
@@ -136,12 +159,15 @@ fn stream() -> Result<Vec<DataPoint>, String> {
             continue;
         }
 
-        let value = raw_line.parse::<i32>().map_err(str_error)?;
+        let value = raw_line.parse::<f64>().map_err(str_error)?;
+
+        min = min.min(value);
+        max = max.max(value);
 
         points.push(DataPoint { value, count: 1 })
     }
 
-    Ok(points)
+    Ok(StreamResult { points, min, max })
 }
 
 fn str_error<T: ToString>(error: T) -> String {
