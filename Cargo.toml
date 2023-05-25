@@ -1,9 +1,11 @@
 [package]
+authors = ["kongo2002 <kongo2002@gmail.com>"]
+homepage = "https://github.com/kongo2002/sta"
+repository = "https://github.com/kongo2002/sta"
+description = "Command line utility to output a text histogram"
 name = "sta"
 version = "0.1.0"
 edition = "2021"
-
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
 argh = "0.1.10"
