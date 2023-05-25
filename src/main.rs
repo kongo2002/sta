@@ -1,27 +1,8 @@
 use std::io::BufRead;
-use std::str::FromStr;
 
-use argh::FromArgs;
+use self::cli::{Args, LineFormat};
 
-#[derive(Debug, PartialEq)]
-enum LineFormat {
-    Single,
-    KeyValue,
-    ValueKey,
-}
-
-impl FromStr for LineFormat {
-    type Err = String;
-
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        match s {
-            "single" => Ok(LineFormat::Single),
-            "kv" => Ok(LineFormat::KeyValue),
-            "vk" => Ok(LineFormat::ValueKey),
-            _ => Err(format!("unknown line format: '{}'", s)),
-        }
-    }
-}
+mod cli;
 
 struct StreamResult {
     pub points: Vec<DataPoint>,
@@ -34,27 +15,8 @@ struct DataPoint {
     pub count: usize,
 }
 
-#[derive(FromArgs, PartialEq, Debug)]
-#[argh(description = "histogram from the command line")]
-struct Args {
-    #[argh(option, description = "number of buckets", short = 'b', default = "10")]
-    buckets: i32,
-    #[argh(
-        option,
-        description = "line format (default: single)",
-        short = 'f',
-        default = "LineFormat::Single"
-    )]
-    format: LineFormat,
-    #[argh(option, description = "minimum value")]
-    min: Option<f64>,
-    #[argh(option, description = "maximum value")]
-    max: Option<f64>,
-}
-
 fn main() {
-    let parsed = argh::from_env();
-    match process(parsed) {
+    match process(Args::new()) {
         Ok(()) => {}
         Err(err) => {
             eprintln!("failed to process: {}", err);
