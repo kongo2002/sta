@@ -34,7 +34,8 @@ jobs:
           - { target: arm-unknown-linux-musleabihf, os: ubuntu-20.04, use-cross: true }
           - { target: i686-unknown-linux-gnu      , os: ubuntu-20.04, use-cross: true }
           - { target: i686-unknown-linux-musl     , os: ubuntu-20.04, use-cross: true }
-          - { target: x86_64-apple-darwin         , os: macos-10.15                   }
+          # remove until actions-rs is replaced
+          #- { target: x86_64-apple-darwin         , os: macos-10.15                   }
           - { target: x86_64-unknown-linux-gnu    , os: ubuntu-20.04, use-cross: true }
           - { target: x86_64-unknown-linux-musl   , os: ubuntu-20.04, use-cross: true }
 
@@ -61,12 +62,9 @@ jobs:
         echo "PROJECT_HOMEPAGE=$(sed -n 's/^homepage = "\(.*\)"/\1/p' Cargo.toml)" >> $GITHUB_ENV
 
     - name: Install Rust toolchain
-      uses: actions-rs/toolchain@v1
-      with:
-        toolchain: stable
-        target: ${{ matrix.job.target }}
-        override: true
-        profile: minimal
+      run: |
+        rustup toolchain install stable --profile minimal --no-self-update
+        rustup default stable
 
     - name: Show version information
       shell: bash
@@ -79,18 +77,12 @@ jobs:
         rustc -V
 
     - name: Build release
-      uses: actions-rs/cargo@v1
-      with:
-        use-cross: ${{ matrix.job.use-cross }}
-        command: build
-        args: --locked --release --target=${{ matrix.job.target }}
+      run: |
+        cargo build --locked --release --target ${{ matrix.job.target }}
 
     - name: Run sta
-      uses: actions-rs/cargo@v1
-      with:
-        use-cross: ${{ matrix.job.use-cross }}
-        command: run
-        args: --locked --target=${{ matrix.job.target }} -- --help
+      run: |
+        cargo run --locked --target ${{ matrix.job.target }} -- --help
 
     - name: Create archive
       id: package
