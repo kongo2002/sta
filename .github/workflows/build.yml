@@ -62,9 +62,20 @@ jobs:
         echo "PROJECT_HOMEPAGE=$(sed -n 's/^homepage = "\(.*\)"/\1/p' Cargo.toml)" >> $GITHUB_ENV
 
     - name: Install Rust toolchain
-      run: |
-        rustup toolchain install stable --profile minimal --target ${{ matrix.job.target }} --no-self-update
-        rustup default stable
+      uses: dtolnay/rust-toolchain@stable
+      with:
+        targets: ${{ matrix.job.target }}
+
+    - name: Install cross
+      if: matrix.job.use-cross
+      uses: taiki-e/install-action@v2
+      with:
+        tool: cross
+
+    - name: Overwrite build tool
+      if: matrix.job.use-cross
+      shell: bash
+      run: echo "BUILD_CMD=cross" >> $GITHUB_ENV
 
     - name: Show version information
       shell: bash
@@ -78,11 +89,11 @@ jobs:
 
     - name: Build release
       run: |
-        cargo build --locked --release --target ${{ matrix.job.target }}
+        $BUILD_CMD build --locked --release --target=${{ matrix.job.target }}
 
     - name: Run sta
       run: |
-        cargo run --locked --target ${{ matrix.job.target }} -- --help
+        $BUILD_CMD run --locked --target=${{ matrix.job.target }} -- --help
 
     - name: Create archive
       id: package
