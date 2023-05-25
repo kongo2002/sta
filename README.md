@@ -25,36 +25,20 @@ easily install (or rather copy a binary) on any machine I need it.
 ### Basic 1-dimensional values
 
 ```console
-$ sta <<EOF
+$ sta -b 5 <<EOF
+1
 4
-3
-1
-1
-5
 2
-4
-1
-4
-6
-1
-4
-6
-5
+2
 2
 EOF
-# samples: 15; min: 1; max: 6
-# mean: 3.27; var: 3.13; sd: 1.77, median: 4.00
+# samples: 5; min: 1; max: 4
+# mean: 2.20; var: 0.96; sd: 0.98, median: 2.00
 # each * represents a count of 1
-1.00 - 1.50 [4] ****
-1.50 - 2.00 [2] **
-2.00 - 2.50 [0]
-2.50 - 3.00 [1] *
-3.00 - 3.50 [0]
-3.50 - 4.00 [4] ****
-4.00 - 4.50 [0]
-4.50 - 5.00 [2] **
-5.00 - 5.50 [0]
-5.50 - 6.00 [2] **
+1.00 - 1.75 [1] *
+1.75 - 2.50 [3] ***
+2.50 - 3.25 [0]
+3.25 - 4.00 [1] *
 ```
 
 
