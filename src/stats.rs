@@ -18,6 +18,10 @@ impl MVSD {
     }
 
     pub fn add(&mut self, value: f64, weight: f64) {
+        if weight <= 0.0 {
+            return;
+        }
+
         if !self.started {
             self.means = value;
             self.sum_squares = 0f64;
@@ -35,7 +39,11 @@ impl MVSD {
     }
 
     pub fn var(&self) -> f64 {
-        self.sum_squares / self.total_weights
+        if self.started {
+            self.sum_squares / self.total_weights
+        } else {
+            0.0
+        }
     }
 
     pub fn sd(&self) -> f64 {

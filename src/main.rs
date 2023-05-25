@@ -63,6 +63,10 @@ fn process(args: Args) -> Result<(), String> {
     };
 
     for point in data.points {
+        if point.count <= 0 {
+            continue;
+        }
+
         samples += point.count;
         if !args.quiet {
             mvsd.add(point.value, point.count as f64);
