@@ -34,11 +34,12 @@ jobs:
           - { target: arm-unknown-linux-musleabihf, os: ubuntu-20.04, use-cross: true }
           - { target: i686-unknown-linux-gnu      , os: ubuntu-20.04, use-cross: true }
           - { target: i686-unknown-linux-musl     , os: ubuntu-20.04, use-cross: true }
-          # remove until actions-rs is replaced
-          #- { target: x86_64-apple-darwin         , os: macos-10.15                   }
+          - { target: x86_64-apple-darwin         , os: macos-10.15                   }
           - { target: x86_64-unknown-linux-gnu    , os: ubuntu-20.04, use-cross: true }
           - { target: x86_64-unknown-linux-musl   , os: ubuntu-20.04, use-cross: true }
 
+    env:
+      BUILD_CMD: cargo
     steps:
     - uses: actions/checkout@v3
 
