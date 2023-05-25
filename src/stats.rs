@@ -3,6 +3,7 @@ pub struct MVSD {
     sum_squares: f64,
     means: f64,
     total_weights: f64,
+    values: Vec<f64>,
 }
 
 impl MVSD {
@@ -12,6 +13,7 @@ impl MVSD {
             sum_squares: 0f64,
             means: 0f64,
             total_weights: 0f64,
+            values: vec![],
         }
     }
 
@@ -29,6 +31,7 @@ impl MVSD {
             self.means += (value - self.means) / new_weight;
             self.total_weights = new_weight;
         }
+        self.values.push(value)
     }
 
     pub fn var(&self) -> f64 {
@@ -42,14 +45,38 @@ impl MVSD {
     pub fn mean(&self) -> f64 {
         self.means
     }
+
+    pub fn median(self) -> f64 {
+        median(self.values)
+    }
+}
+
+fn median(mut values: Vec<f64>) -> f64 {
+    if values.is_empty() {
+        return 0.0;
+    }
+
+    let length = values.len();
+    let indices = if length % 2 != 0 {
+        vec![length / 2]
+    } else {
+        vec![length / 2 - 1, length / 2]
+    };
+
+    values.sort_unstable_by(|a, b| a.partial_cmp(b).unwrap());
+
+    let num_indices = indices.len() as f64;
+    let median_values = indices.into_iter().map(|idx| values[idx]);
+
+    median_values.sum::<f64>() / num_indices
 }
 
 #[cfg(test)]
 mod tests {
-    use super::MVSD;
+    use super::{median, MVSD};
 
     #[test]
-    fn mvsd_correct_values() {
+    fn test_mvsd_correct_values() {
         let mut mvsd = MVSD::new();
         for value in 0..10 {
             mvsd.add(value as f64, 1.0);
@@ -58,5 +85,11 @@ mod tests {
         assert_eq!(format!("{:.2}", mvsd.mean()), "4.50");
         assert_eq!(format!("{:.2}", mvsd.var()), "8.25");
         assert_eq!(format!("{:.2}", mvsd.sd()), "2.87");
+    }
+
+    #[test]
+    fn test_median() {
+        assert_eq!(median(vec![8.0, 7.0, 9.0, 1.0, 2.0, 6.0, 3.0]), 6.0);
+        assert_eq!(median(vec![4.0, 5.0, 2.0, 1.0, 9.0, 10.0]), 4.5);
     }
 }

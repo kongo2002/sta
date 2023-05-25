@@ -87,10 +87,11 @@ fn process(args: Args) -> Result<(), String> {
 
     if !args.quiet {
         println!(
-            "# mean: {:.2}; var: {:.2}; sd: {:.2}",
+            "# mean: {:.2}; var: {:.2}; sd: {:.2}, median: {:.2}",
             mvsd.mean(),
             mvsd.var(),
-            mvsd.sd()
+            mvsd.sd(),
+            mvsd.median()
         );
     }
 
