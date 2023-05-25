@@ -3,6 +3,8 @@
 *sta* is a command line utility for quick data analysis that currently supports
 output of a text histogram.
 
+[![sta](https://github.com/kongo2002/sta/actions/workflows/build.yml/badge.svg)][actions]
+
 
 ## Motivation
 
@@ -90,3 +92,6 @@ $ cargo build --release
 ```console
 $ cargo test
 ```
+
+
+[actions]: https://github.com/kongo2002/sta/actions/
