@@ -109,6 +109,24 @@ fn process(args: Args) -> Result<(), String> {
     let mut bucket_max = minimum;
     let mut table = tabular::Table::new("{:>} - {:>} [{:>}] {:<}");
 
+    let precision = if args.log {
+        if minimum <= 10.0 {
+            2
+        } else if minimum <= 25.0 {
+            1
+        } else {
+            0
+        }
+    } else if diff <= 3.0 {
+        3
+    } else if diff <= 10.0 {
+        2
+    } else if diff <= 25.0 {
+        1
+    } else {
+        0
+    };
+
     for bucket in 0..buckets as usize {
         bucket_min = bucket_max;
         bucket_max = boundaries[bucket];
@@ -116,8 +134,8 @@ fn process(args: Args) -> Result<(), String> {
         let dots = if count > 0 { count / bucket_scale } else { 0 };
 
         table.add_row(tabular::row!(
-            num_fmt(bucket_min, 2),
-            num_fmt(bucket_max, 2),
+            num_fmt(bucket_min, precision),
+            num_fmt(bucket_max, precision),
             count,
             "*".repeat(dots)
         ));
