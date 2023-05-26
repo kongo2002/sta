@@ -40,10 +40,23 @@ pub struct Args {
     pub max: Option<f64>,
     #[argh(switch, short = 'q', description = "disable mean/std/var calculation")]
     pub quiet: bool,
+    #[argh(switch, description = "use log scale")]
+    pub log: bool,
 }
 
 impl Args {
     pub fn new() -> Args {
-        argh::from_env()
+        let args: Args = argh::from_env();
+
+        if args.buckets <= 0 {
+            bail_out("buckets must be positive");
+        }
+
+        args
     }
+}
+
+fn bail_out(err: &str) {
+    eprintln!("{}", err);
+    std::process::exit(1)
 }

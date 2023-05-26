@@ -84,7 +84,7 @@ mod tests {
     use super::{median, MVSD};
 
     #[test]
-    fn test_mvsd_correct_values() {
+    fn correct_mvsd() {
         let mut mvsd = MVSD::new();
         for value in 0..10 {
             mvsd.add(value as f64, 1.0);
@@ -96,7 +96,7 @@ mod tests {
     }
 
     #[test]
-    fn test_median() {
+    fn correct_median() {
         assert_eq!(median(vec![8.0, 7.0, 9.0, 1.0, 2.0, 6.0, 3.0]), 6.0);
         assert_eq!(median(vec![4.0, 5.0, 2.0, 1.0, 9.0, 10.0]), 4.5);
     }

@@ -40,17 +40,17 @@ fn process(args: Args) -> Result<(), String> {
     let diff = maximum - minimum;
 
     let buckets = args.buckets;
-    let step = diff / (buckets as f64);
 
     let mut mvsd = stats::MVSD::new();
     let mut samples = 0usize;
     let mut excluded = 0usize;
-    let mut boundaries = vec![];
     let mut bucket_counts = vec![0; buckets as usize];
 
-    for idx in 0..buckets {
-        boundaries.push(minimum + (step * (idx as f64 + 1.0)));
-    }
+    let boundaries = if args.log {
+        log_scale_buckets(buckets, minimum, diff)
+    } else {
+        linear_scale_buckets(buckets, minimum, diff)
+    };
 
     let last_bucket = bucket_counts.len() - 1;
     let get_bucket = |val: f64| {
@@ -128,6 +128,30 @@ fn process(args: Args) -> Result<(), String> {
     Ok(())
 }
 
+fn log_scale_buckets(buckets: i32, min: f64, diff: f64) -> Vec<f64> {
+    const BASE: u32 = 2;
+    let first_bucket_size = diff / ((BASE.pow(buckets as u32) - 1) as f64);
+    let mut boundaries = vec![];
+    let mut sum = 0f64;
+
+    for idx in 0..buckets as u32 {
+        sum += BASE.pow(idx) as f64 * first_bucket_size;
+        boundaries.push(min + sum);
+    }
+
+    boundaries
+}
+
+fn linear_scale_buckets(buckets: i32, min: f64, diff: f64) -> Vec<f64> {
+    let mut boundaries = vec![];
+    let step = diff / (buckets as f64);
+
+    for idx in 0..buckets {
+        boundaries.push(min + (step * (idx as f64 + 1.0)));
+    }
+    boundaries
+}
+
 #[inline]
 fn num_fmt(value: f64, precision: usize) -> String {
     format!("{:.precision$}", value)
@@ -194,4 +218,21 @@ fn tuple(line: &str) -> Result<(f64, f64), String> {
 
 fn line_error<T: ToString>(idx: usize, error: T) -> String {
     format!("line {}: {}", idx + 1, error.to_string())
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::{linear_scale_buckets, log_scale_buckets};
+
+    #[test]
+    fn linear_scale() {
+        let buckets = linear_scale_buckets(4, 0.0, 100.0);
+        assert_eq!(buckets, vec![25.0, 50.0, 75.0, 100.0]);
+    }
+
+    #[test]
+    fn log_scale() {
+        let buckets = log_scale_buckets(4, 0.0, 300.0);
+        assert_eq!(buckets, vec![20.0, 60.0, 140.0, 300.0]);
+    }
 }
