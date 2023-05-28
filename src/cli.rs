@@ -34,6 +34,18 @@ pub struct Args {
 pub enum Command {
     HistCommand(HistArgs),
     BarCommand(BarArgs),
+    PercentileCommand(PercentileArgs),
+}
+
+#[derive(FromArgs, PartialEq, Debug)]
+#[argh(
+    subcommand,
+    name = "percentile",
+    description = "show the percentile of input values"
+)]
+pub struct PercentileArgs {
+    #[argh(positional, description = "percentile")]
+    pub percentile: u8,
 }
 
 #[derive(FromArgs, PartialEq, Debug)]

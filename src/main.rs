@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 use std::io::BufRead;
 
-use self::cli::{Args, BarArgs, HistArgs, LineFormat};
+use self::cli::{Args, BarArgs, HistArgs, LineFormat, PercentileArgs};
 
 mod cli;
 mod stats;
@@ -27,6 +27,15 @@ fn main() {
             histogram(args)
         }
         cli::Command::BarCommand(args) => bar(args),
+        cli::Command::PercentileCommand(args) => {
+            if args.percentile <= 0 {
+                bail_out("percentile has to be positive")
+            }
+            if args.percentile > 100 {
+                bail_out("percentile has to be less than or equal to 100")
+            }
+            percentile(args)
+        }
     };
 
     match result {
@@ -38,6 +47,20 @@ fn main() {
 }
 
 const MAX_DOT_COUNT: usize = 50;
+
+fn percentile(args: PercentileArgs) -> Result<(), String> {
+    let values = stream_values()?;
+    if values.is_empty() {
+        return Err(String::from("empty input"));
+    }
+
+    let num_values = values.len();
+    let rank = num_values * args.percentile as usize / 100;
+    let idx = rank.min(num_values - 1);
+
+    println!("p{}: {:.2}", args.percentile, values[idx]);
+    Ok(())
+}
 
 fn bar(args: BarArgs) -> Result<(), String> {
     let values = stream_unique_values(args.format)?;
@@ -260,6 +283,22 @@ fn stream_unique_values(format: LineFormat) -> Result<HashMap<String, usize>, St
     })?;
 
     Ok(map)
+}
+
+fn stream_values() -> Result<Vec<f64>, String> {
+    let mut values = Vec::new();
+
+    process_lines(|trimmed, idx| {
+        let value = trimmed.parse::<f64>().map_err(|err| line_error(idx, err))?;
+
+        values.push(value);
+
+        Ok(())
+    })?;
+
+    values.sort_unstable_by(|a, b| a.partial_cmp(b).unwrap());
+
+    Ok(values)
 }
 
 fn stream_data_points(format: LineFormat) -> Result<StreamResult, String> {

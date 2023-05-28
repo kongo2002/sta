@@ -131,6 +131,19 @@ buckets [26] ∎∎∎∎∎∎∎∎∎∎∎∎∎∎∎∎∎∎∎∎∎∎�
 ```
 
 
+### Percentile
+
+You can also calculate a specific percentile of given input values using the
+`percentile` command:
+
+```console
+$ echo 'import random\nfor i in range(1000):\n print(random.randint(0,10000))' \
+  | python3 \
+  | sta percentile 95
+p95: 9436.00
+```
+
+
 ## Build
 
 You can use the usual Rust toolchain via `cargo` to build, test and run `sta` by
