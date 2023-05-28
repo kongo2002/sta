@@ -4,7 +4,7 @@ homepage = "https://github.com/kongo2002/sta"
 repository = "https://github.com/kongo2002/sta"
 description = "Command line utility to output a text histogram"
 name = "sta"
-version = "1.1.0"
+version = "1.2.0"
 edition = "2021"
 
 [dependencies]
