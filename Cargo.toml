@@ -2,7 +2,7 @@
 authors = ["kongo2002 <kongo2002@gmail.com>"]
 homepage = "https://github.com/kongo2002/sta"
 repository = "https://github.com/kongo2002/sta"
-description = "Command line utility to output a text histogram"
+description = "Command line utility for data analysis"
 name = "sta"
 version = "1.2.0"
 edition = "2021"
