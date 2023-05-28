@@ -137,7 +137,7 @@ fn process(args: Args) -> Result<(), String> {
             num_fmt(bucket_min, precision),
             num_fmt(bucket_max, precision),
             count,
-            "*".repeat(dots)
+            "∎".repeat(dots)
         ));
     }
 
