@@ -1,6 +1,6 @@
 use std::io::BufRead;
 
-use self::cli::{Args, LineFormat};
+use self::cli::{Args, HistArgs, LineFormat};
 
 mod cli;
 mod stats;
@@ -17,18 +17,28 @@ struct DataPoint {
 }
 
 fn main() {
-    match process(Args::new()) {
+    let result = match Args::new().command {
+        cli::Command::HistCommand(args) => {
+            if args.buckets <= 0 {
+                bail_out("buckets must be positive");
+            }
+
+            histogram(args)
+        }
+        cli::Command::BarCommand(_) => Ok(()),
+    };
+
+    match result {
         Ok(()) => {}
         Err(err) => {
-            eprintln!("failed to process: {}", err);
-            std::process::exit(1)
+            bail_out(format!("failed to process: {}", err).as_str());
         }
     }
 }
 
 const MAX_DOT_COUNT: usize = 50;
 
-fn process(args: Args) -> Result<(), String> {
+fn histogram(args: HistArgs) -> Result<(), String> {
     let data = stream(args.format)?;
     if data.points.is_empty() {
         return Err(String::from("empty input"));
@@ -232,6 +242,11 @@ fn tuple(line: &str) -> Result<(f64, f64), String> {
     let snd_num = snd.parse::<f64>().map_err(|err| err.to_string())?;
 
     Ok((fst_num, snd_num))
+}
+
+fn bail_out(err: &str) {
+    eprintln!("{}", err);
+    std::process::exit(1)
 }
 
 fn line_error<T: ToString>(idx: usize, error: T) -> String {

@@ -23,8 +23,34 @@ impl FromStr for LineFormat {
 }
 
 #[derive(FromArgs, PartialEq, Debug)]
-#[argh(description = "histogram from the command line")]
+#[argh(description = "data analysis from the command line")]
 pub struct Args {
+    #[argh(subcommand)]
+    pub command: Command,
+}
+
+#[derive(FromArgs, PartialEq, Debug)]
+#[argh(subcommand)]
+pub enum Command {
+    HistCommand(HistArgs),
+    BarCommand(BarArgs),
+}
+
+#[derive(FromArgs, PartialEq, Debug)]
+#[argh(
+    subcommand,
+    name = "bar",
+    description = "show bar diagram of input values"
+)]
+pub struct BarArgs {}
+
+#[derive(FromArgs, PartialEq, Debug)]
+#[argh(
+    subcommand,
+    name = "histogram",
+    description = "show histogram of input values"
+)]
+pub struct HistArgs {
     #[argh(option, description = "number of buckets", short = 'b', default = "10")]
     pub buckets: i32,
     #[argh(
@@ -46,17 +72,6 @@ pub struct Args {
 
 impl Args {
     pub fn new() -> Args {
-        let args: Args = argh::from_env();
-
-        if args.buckets <= 0 {
-            bail_out("buckets must be positive");
-        }
-
-        args
+        argh::from_env()
     }
-}
-
-fn bail_out(err: &str) {
-    eprintln!("{}", err);
-    std::process::exit(1)
 }
