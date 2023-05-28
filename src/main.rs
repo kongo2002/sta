@@ -1,6 +1,7 @@
+use std::collections::HashMap;
 use std::io::BufRead;
 
-use self::cli::{Args, HistArgs, LineFormat};
+use self::cli::{Args, BarArgs, HistArgs, LineFormat};
 
 mod cli;
 mod stats;
@@ -25,7 +26,7 @@ fn main() {
 
             histogram(args)
         }
-        cli::Command::BarCommand(_) => Ok(()),
+        cli::Command::BarCommand(args) => bar(args),
     };
 
     match result {
@@ -38,8 +39,41 @@ fn main() {
 
 const MAX_DOT_COUNT: usize = 50;
 
+fn bar(args: BarArgs) -> Result<(), String> {
+    let values = stream_unique_values(args.format)?;
+    if values.is_empty() {
+        return Err(String::from("empty input"));
+    }
+
+    let max_count = values
+        .iter()
+        .map(|(_, v)| v)
+        .max()
+        .unwrap_or(&0usize)
+        .clone();
+
+    let scale = if max_count > MAX_DOT_COUNT {
+        max_count / MAX_DOT_COUNT
+    } else {
+        1
+    };
+
+    println!("# each ∎ represents a count of {}", scale);
+
+    let mut table = tabular::Table::new("{:>} [{:>}] {:<}");
+
+    for (key, count) in values {
+        let dots = if count > 0 { count / scale } else { 0 };
+
+        table.add_row(tabular::row!(key, count, "∎".repeat(dots)));
+    }
+
+    print!("{}", table);
+    Ok(())
+}
+
 fn histogram(args: HistArgs) -> Result<(), String> {
-    let data = stream(args.format)?;
+    let data = stream_data_points(args.format)?;
     if data.points.is_empty() {
         return Err(String::from("empty input"));
     }
@@ -109,7 +143,7 @@ fn histogram(args: HistArgs) -> Result<(), String> {
         );
     }
 
-    println!("# each * represents a count of {}", bucket_scale);
+    println!("# each ∎ represents a count of {}", bucket_scale);
 
     if excluded > 0 {
         println!("# excluded {} value(s) based on min/max", excluded);
@@ -185,7 +219,40 @@ fn num_fmt(value: f64, precision: usize) -> String {
     format!("{:.precision$}", value)
 }
 
-fn stream(format: LineFormat) -> Result<StreamResult, String> {
+fn stream_unique_values(format: LineFormat) -> Result<HashMap<String, usize>, String> {
+    let mut map = HashMap::new();
+
+    let stdin = std::io::stdin();
+    for (idx, line) in stdin.lock().lines().enumerate() {
+        let raw_line = line.map_err(|err| line_error(idx, err))?;
+        let trimmed = raw_line.trim();
+
+        if trimmed.is_empty() {
+            continue;
+        }
+
+        let (key, count): (String, usize) = match format {
+            LineFormat::Single => Ok::<(String, usize), String>((trimmed.to_string(), 1usize)),
+            LineFormat::KeyValue => {
+                let (fst, snd) = tuple(trimmed).map_err(|err| line_error(idx, err))?;
+
+                let count = snd.parse::<f64>().map_err(|err| line_error(idx, err))?;
+                Ok((fst.to_string(), count as usize))
+            }
+            LineFormat::ValueKey => {
+                let (fst, snd) = tuple(trimmed).map_err(|err| line_error(idx, err))?;
+                let count = fst.parse::<f64>().map_err(|err| line_error(idx, err))?;
+                Ok((snd.to_string(), count as usize))
+            }
+        }?;
+
+        *map.entry(key).or_insert(0) += count;
+    }
+
+    Ok(map)
+}
+
+fn stream_data_points(format: LineFormat) -> Result<StreamResult, String> {
     let mut points = vec![];
     let mut min = f64::MAX;
     let mut max = f64::MIN;
@@ -205,14 +272,14 @@ fn stream(format: LineFormat) -> Result<StreamResult, String> {
                 Ok::<DataPoint, String>(DataPoint { value, count: 1 })
             }
             LineFormat::KeyValue => {
-                let (fst, snd) = tuple(trimmed).map_err(|err| line_error(idx, err))?;
+                let (fst, snd) = f64_tuple(trimmed).map_err(|err| line_error(idx, err))?;
                 Ok(DataPoint {
                     value: fst,
                     count: snd as usize,
                 })
             }
             LineFormat::ValueKey => {
-                let (fst, snd) = tuple(trimmed).map_err(|err| line_error(idx, err))?;
+                let (fst, snd) = f64_tuple(trimmed).map_err(|err| line_error(idx, err))?;
                 Ok(DataPoint {
                     value: snd,
                     count: fst as usize,
@@ -229,7 +296,7 @@ fn stream(format: LineFormat) -> Result<StreamResult, String> {
     Ok(StreamResult { points, min, max })
 }
 
-fn tuple(line: &str) -> Result<(f64, f64), String> {
+fn tuple(line: &str) -> Result<(&str, &str), String> {
     let mut splitter = line.split_whitespace();
     let fst = splitter
         .next()
@@ -237,6 +304,12 @@ fn tuple(line: &str) -> Result<(f64, f64), String> {
     let snd = splitter
         .next()
         .ok_or_else(|| String::from("expecting two values"))?;
+
+    Ok((fst, snd))
+}
+
+fn f64_tuple(line: &str) -> Result<(f64, f64), String> {
+    let (fst, snd) = tuple(line)?;
 
     let fst_num = fst.parse::<f64>().map_err(|err| err.to_string())?;
     let snd_num = snd.parse::<f64>().map_err(|err| err.to_string())?;

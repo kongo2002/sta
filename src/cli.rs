@@ -42,7 +42,15 @@ pub enum Command {
     name = "bar",
     description = "show bar diagram of input values"
 )]
-pub struct BarArgs {}
+pub struct BarArgs {
+    #[argh(
+        option,
+        description = "line format (default: single)",
+        short = 'f',
+        default = "LineFormat::Single"
+    )]
+    pub format: LineFormat,
+}
 
 #[derive(FromArgs, PartialEq, Debug)]
 #[argh(
