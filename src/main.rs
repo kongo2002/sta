@@ -219,9 +219,7 @@ fn num_fmt(value: f64, precision: usize) -> String {
     format!("{:.precision$}", value)
 }
 
-fn stream_unique_values(format: LineFormat) -> Result<HashMap<String, usize>, String> {
-    let mut map = HashMap::new();
-
+fn process_lines<T: FnMut(&str, usize) -> Result<(), String>>(mut func: T) -> Result<(), String> {
     let stdin = std::io::stdin();
     for (idx, line) in stdin.lock().lines().enumerate() {
         let raw_line = line.map_err(|err| line_error(idx, err))?;
@@ -231,6 +229,16 @@ fn stream_unique_values(format: LineFormat) -> Result<HashMap<String, usize>, St
             continue;
         }
 
+        func(trimmed, idx)?;
+    }
+
+    Ok(())
+}
+
+fn stream_unique_values(format: LineFormat) -> Result<HashMap<String, usize>, String> {
+    let mut map = HashMap::new();
+
+    process_lines(|trimmed, idx| {
         let (key, count): (String, usize) = match format {
             LineFormat::Single => Ok::<(String, usize), String>((trimmed.to_string(), 1usize)),
             LineFormat::KeyValue => {
@@ -247,7 +255,9 @@ fn stream_unique_values(format: LineFormat) -> Result<HashMap<String, usize>, St
         }?;
 
         *map.entry(key).or_insert(0) += count;
-    }
+
+        Ok(())
+    })?;
 
     Ok(map)
 }
@@ -257,15 +267,7 @@ fn stream_data_points(format: LineFormat) -> Result<StreamResult, String> {
     let mut min = f64::MAX;
     let mut max = f64::MIN;
 
-    let stdin = std::io::stdin();
-    for (idx, line) in stdin.lock().lines().enumerate() {
-        let raw_line = line.map_err(|err| line_error(idx, err))?;
-        let trimmed = raw_line.trim();
-
-        if trimmed.is_empty() {
-            continue;
-        }
-
+    process_lines(|trimmed, idx| {
         let point: DataPoint = match format {
             LineFormat::Single => {
                 let value = trimmed.parse::<f64>().map_err(|err| line_error(idx, err))?;
@@ -290,8 +292,9 @@ fn stream_data_points(format: LineFormat) -> Result<StreamResult, String> {
         min = min.min(point.value);
         max = max.max(point.value);
 
-        points.push(point)
-    }
+        points.push(point);
+        Ok(())
+    })?;
 
     Ok(StreamResult { points, min, max })
 }
