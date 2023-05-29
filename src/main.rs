@@ -174,7 +174,7 @@ fn histogram(args: HistArgs) -> Result<(), String> {
 
     let mut bucket_min;
     let mut bucket_max = minimum;
-    let mut table = tabular::Table::new("{:>} - {:>} [{:>}] {:<}");
+    let mut table = tabular::Table::new("{:>} - {:>} [ {:>}] {:<}");
 
     let precision = if args.log {
         if minimum <= 10.0 {
