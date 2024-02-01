@@ -277,7 +277,9 @@ fn stream_unique_values(format: LineFormat) -> Result<HashMap<String, usize>, St
             }
         }?;
 
-        map.entry(key).and_modify(|cnt| *cnt += count).or_insert(1);
+        map.entry(key)
+            .and_modify(|cnt| *cnt += count)
+            .or_insert(count);
 
         Ok(())
     })?;
